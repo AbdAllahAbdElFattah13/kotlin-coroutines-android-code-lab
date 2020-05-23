@@ -129,17 +129,19 @@ class MainViewModel(private val repository: TitleRepository) : ViewModel() {
      * Refresh the title, showing a loading spinner while it refreshes and errors via snackbar.
      */
     fun refreshTitle() {
-        // TODO: Convert refreshTitle to use coroutines
-        _spinner.value = true
-        repository.refreshTitleWithCallbacks(object : TitleRefreshCallback {
-            override fun onCompleted() {
-                _spinner.postValue(false)
-            }
-
-            override fun onError(cause: Throwable) {
+        /*
+        * launching a suspended function within viewModelScope
+        * can safely replace a callback based implementation.
+        * */
+        viewModelScope.launch {
+            _spinner.value = true
+            try {
+                repository.refreshTitle()
+            } catch (cause: TitleRefreshError) {
                 _snackBar.postValue(cause.message)
-                _spinner.postValue(false)
+            } finally {
+                _spinner.value = false
             }
-        })
+        }
     }
 }
