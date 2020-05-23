@@ -18,9 +18,6 @@ package com.example.android.kotlincoroutines.main
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 
 /**
  * TitleRepository provides an interface to fetch a title or request a new one be generated.
@@ -52,41 +49,19 @@ class TitleRepository(val network: MainNetwork, val titleDao: TitleDao) {
     @Throws(TitleRefreshError::class)
     suspend fun refreshTitle() {
         /*
-        * withContext will simply change the thread/Dispatcher
-        * that this coroutine currently running on, only for
-        * the following lambda scope.
-        *
-        * This allows for blocking calls/work to run safely
-        * away from the the parent thread, potentially being
-        * the MainThread.
+        * Since room and retrofit both provide support
+        * for main-safe suspend functions out of the box,
+        * we can use them with even changing the context.
         * */
-        withContext(Dispatchers.IO) {
             try {
                 // Make network request using a blocking call
-                val result = network.fetchNextTitle().execute()
-
-                /*
-                * yield will allow the coroutine/current scope
-                * to check for cancellation checks.
-                *
-                * This can be done without it though, using
-                * [isActive, CancellationException].
-                *
-                * */
-                yield()
-                if (result.isSuccessful) {
-                    // Save it to database, blocking call!
-                    titleDao.insertTitle(Title(result.body()!!))
-
-                } else {
-                    // If it's not successful, inform the callback of the error
-                    throw  TitleRefreshError("Unable to refresh title", null)
-                }
+                val result = network.fetchNextTitle()
+                // Save it to database, blocking call!
+                titleDao.insertTitle(Title(result))
             } catch (cause: Throwable) {
                 // If anything throws an exception, inform the caller
                 throw    TitleRefreshError("Unable to refresh title", cause)
             }
-        }
     }
 }
 
