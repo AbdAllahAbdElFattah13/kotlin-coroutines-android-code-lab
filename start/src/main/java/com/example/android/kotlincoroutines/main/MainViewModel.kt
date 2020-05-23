@@ -103,6 +103,14 @@ class MainViewModel(private val repository: TitleRepository) : ViewModel() {
      * Wait one second then update the tap count.
      */
     private fun updateTaps() {
+        /*
+        * In short viewModelScope is a custom scope that:
+        * 1- Has a default dispatcher of Main, which is
+        * usually good to handle ui related actions, since
+        * the coroutine will not the thread.
+        * 2- Will be auto-canceled when the ViewModel
+        * gets canceled.
+        * */
         viewModelScope.launch {
         tapCount++
             delay(1_000)
